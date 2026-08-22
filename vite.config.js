@@ -8,7 +8,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://mini-dmartby-eknath-katole.onrender.com',
+        target: 'https://mini-dmartby-eknath-katole-ha7f.onrender.com',
         changeOrigin: true,
         secure: false,
       },
