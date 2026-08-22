@@ -4,7 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/demart-ui/',
+  base: process.env.VITE_BASE_URL || '/',
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {
