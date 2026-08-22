@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Package, Truck, Store, Clock, RotateCcw, CheckCircle2 } from 'lucide-react';
+import { Package, Truck, Store, Clock, RotateCcw, CheckCircle2, RefreshCw } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
 import apiClient from '../api/client';
 import { ReturnModal } from '../components/ReturnModal';
 
 export const MyOrdersView = () => {
+  const toast = useToast();
   const [orders, setOrders] = useState([]);
   const [returns, setReturns] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-
   const [selectedOrderForReturn, setSelectedOrderForReturn] = useState(null);
-  const [activeTab, setActiveTab] = useState('orders'); // 'orders' | 'returns'
+  const [activeTab, setActiveTab] = useState('orders');
 
   useEffect(() => {
     fetchOrdersAndReturns();
@@ -19,8 +20,7 @@ export const MyOrdersView = () => {
   }, []);
 
   const fetchOrdersAndReturns = async () => {
-    setLoading(true);
-    setError('');
+    setLoading(true); setError('');
     try {
       const [ordersRes, returnsRes] = await Promise.all([
         apiClient.get('/api/v1/orders'),
@@ -39,172 +39,171 @@ export const MyOrdersView = () => {
     try {
       const res = await apiClient.get('/api/v1/products?size=100');
       setProducts(res.data?.content || []);
-    } catch (err) {
-      console.error('Failed to load products', err);
-    }
+    } catch {}
   };
 
   const handleCancelOrder = async (orderId) => {
-    if (!window.confirm('Are you sure you want to cancel this order?')) return;
+    if (!window.confirm('Cancel this order?')) return;
     try {
       await apiClient.patch(`/api/v1/orders/${orderId}/cancel`);
+      toast.success('Order cancelled successfully.');
       fetchOrdersAndReturns();
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message || 'Failed to cancel order.');
     }
   };
 
-  const statusColors = {
-    PLACED: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-    CONFIRMED: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
-    PREPARING: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
-    READY_FOR_PICKUP: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
-    OUT_FOR_DELIVERY: 'bg-teal-500/20 text-teal-300 border-teal-500/30',
-    DELIVERED: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-    CANCELLED: 'bg-red-500/20 text-red-300 border-red-500/30',
+  const STATUS_STYLES = {
+    PLACED:           'bg-sky-100 text-sky-600 border-sky-200',
+    CONFIRMED:        'bg-blue-100 text-blue-600 border-blue-200',
+    PREPARING:        'bg-amber-100 text-amber-600 border-amber-200',
+    READY_FOR_PICKUP: 'bg-purple-100 text-purple-600 border-purple-200',
+    OUT_FOR_DELIVERY: 'bg-teal-100 text-teal-600 border-teal-200',
+    DELIVERED:        'bg-green-100 text-green-600 border-green-200',
+    CANCELLED:        'bg-red-100 text-red-500 border-red-200',
   };
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-16 text-xs">
       {/* Header */}
-      <div className="bg-slate-800/80 p-5 rounded-3xl border border-slate-700/80 flex flex-wrap justify-between items-center gap-4 shadow-xl">
+      <div className="bg-white p-5 rounded-3xl border border-slate-200 flex flex-wrap justify-between items-center gap-4 shadow-sm">
         <div>
-          <h2 className="text-lg font-black text-white">My Orders & Return Center</h2>
-          <p className="text-slate-400 text-xs">Track order status, manage fulfillment, or request 7-day returns</p>
+          <h2 className="text-lg font-black text-slate-800">My Orders & Return Center</h2>
+          <p className="text-slate-400 mt-0.5">Track orders, manage fulfillment, or request 7-day returns</p>
         </div>
-
-        <div className="flex gap-1.5 bg-slate-900 p-1.5 rounded-2xl border border-slate-700/80 font-bold">
-          <button
-            onClick={() => setActiveTab('orders')}
-            className={`px-4 py-2 rounded-xl transition ${
-              activeTab === 'orders'
-                ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black shadow-md glow-emerald'
-                : 'text-slate-400 hover:text-white'
-            }`}
+        <div className="flex items-center gap-2">
+          <button onClick={fetchOrdersAndReturns}
+            className="p-2 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-xl transition btn-ripple"
+            title="Refresh"
           >
-            Orders ({orders.length})
+            <RefreshCw className="w-4 h-4" />
           </button>
-          <button
-            onClick={() => setActiveTab('returns')}
-            className={`px-4 py-2 rounded-xl transition ${
-              activeTab === 'returns'
-                ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black shadow-md glow-emerald'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Returns & Exchanges ({returns.length})
-          </button>
+          <div className="flex gap-1.5 bg-slate-50 p-1.5 rounded-2xl border border-slate-200 font-bold">
+            {[
+              { id: 'orders', label: `Orders (${orders.length})` },
+              { id: 'returns', label: `Returns (${returns.length})`, color: 'sky' },
+            ].map(({ id, label, color }) => (
+              <button key={id} onClick={() => setActiveTab(id)}
+                className={`px-4 py-2 rounded-xl transition-all duration-200 ${
+                  activeTab === id
+                    ? color === 'sky'
+                      ? 'bg-gradient-to-r from-sky-500 to-sky-400 text-white shadow-md glow-sky'
+                      : 'bg-gradient-to-r from-orange-500 to-orange-400 text-white shadow-md glow-orange'
+                    : 'text-slate-400 hover:text-slate-700'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
       {loading ? (
-        <div className="text-center py-16 text-slate-400 font-bold">Loading history...</div>
+        <div className="space-y-4">
+          {[1, 2, 3].map((n) => (
+            <div key={n} className="bg-white rounded-3xl border border-slate-100 p-6 space-y-3 shadow-sm">
+              <div className="skeleton h-5 w-1/3 rounded-full" />
+              <div className="skeleton h-3 w-1/2 rounded-full" />
+              <div className="skeleton h-12 w-full rounded-2xl" />
+            </div>
+          ))}
+        </div>
       ) : error ? (
-        <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-4 rounded-2xl text-center">{error}</div>
+        <div className="bg-red-50 border border-red-200 text-red-500 p-6 rounded-3xl text-center space-y-2">
+          <p className="font-black">{error}</p>
+          <button onClick={fetchOrdersAndReturns}
+            className="px-5 py-2 bg-red-500 text-white text-xs font-black rounded-xl hover:bg-red-400 transition btn-ripple"
+          >
+            Retry
+          </button>
+        </div>
       ) : activeTab === 'orders' ? (
         orders.length === 0 ? (
-          <div className="bg-slate-800/40 rounded-3xl p-16 text-center border border-slate-700/60 text-slate-400 space-y-2">
-            <Package className="w-12 h-12 mx-auto text-slate-600 stroke-1" />
-            <p className="font-bold text-white">No orders placed yet</p>
+          <div className="bg-white rounded-3xl p-16 text-center border border-slate-100 space-y-3">
+            <div className="w-16 h-16 bg-orange-50 rounded-3xl flex items-center justify-center mx-auto text-3xl">📦</div>
+            <p className="font-black text-slate-600 text-base">No orders placed yet</p>
+            <p className="text-slate-400 text-xs">Start shopping to see your orders here!</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4 stagger-children">
             {orders.map((order) => {
               const isDelivered = order.status === 'DELIVERED';
               const canCancel = order.status === 'PLACED' || order.status === 'CONFIRMED';
-
               return (
-                <div key={order.id} className="bg-slate-800/80 rounded-3xl border border-slate-700/80 p-6 space-y-4 shadow-xl">
-                  <div className="flex flex-wrap justify-between items-center pb-3 border-b border-slate-700/60 gap-2">
+                <div key={order.id} className="bg-white rounded-3xl border border-slate-200 p-6 space-y-4 shadow-sm hover:shadow-md hover:border-orange-200 transition-all duration-200">
+                  <div className="flex flex-wrap justify-between items-center pb-3 border-b border-slate-100 gap-2">
                     <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-black text-sm text-white">Order #{order.id}</span>
-                        <span className={`px-2.5 py-0.5 rounded-full font-bold border text-[10px] ${statusColors[order.status]}`}>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-black text-sm text-slate-800">Order #{order.id}</span>
+                        <span className={`px-2.5 py-0.5 rounded-full font-bold border text-[10px] ${STATUS_STYLES[order.status]}`}>
                           {order.status}
                         </span>
-                        <span className="bg-slate-900 text-slate-300 border border-slate-700 px-2.5 py-0.5 rounded-full font-bold uppercase text-[10px]">
-                          {order.fulfillmentType === 'HOME_DELIVERY' ? (
-                            <span className="flex items-center gap-1">
-                              <Truck className="w-3 h-3 text-emerald-400" /> Home Delivery
-                            </span>
-                          ) : (
-                            <span className="flex items-center gap-1">
-                              <Store className="w-3 h-3 text-lime-400" /> Store Pickup
-                            </span>
-                          )}
+                        <span className="bg-slate-50 text-slate-500 border border-slate-200 px-2.5 py-0.5 rounded-full font-bold uppercase text-[10px] flex items-center gap-1">
+                          {order.fulfillmentType === 'HOME_DELIVERY'
+                            ? <><Truck className="w-3 h-3 text-orange-500" /> Home Delivery</>
+                            : <><Store className="w-3 h-3 text-sky-500" /> Store Pickup</>}
                         </span>
                       </div>
                       <div className="text-slate-400 text-[11px] mt-1 flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        Placed on {new Date(order.createdAt).toLocaleString()}
+                        {new Date(order.createdAt).toLocaleString()}
                       </div>
                     </div>
-
                     <div className="text-right">
-                      <div className="text-lg font-black text-emerald-400">₹{order.totalAmount}</div>
-                      <div className="text-slate-400 text-[11px]">{order.itemCount} Items</div>
+                      <div className="text-lg font-black text-orange-500">₹{order.totalAmount}</div>
+                      <div className="text-slate-400 text-[11px]">{order.itemCount} items</div>
                     </div>
                   </div>
 
                   {order.fulfillmentType === 'HOME_DELIVERY' && order.deliveryStreet && (
-                    <div className="bg-slate-900/60 p-3.5 rounded-2xl text-slate-300 border border-slate-700/60">
-                      <strong className="text-emerald-400">Delivery Address:</strong> {order.deliveryStreet}, {order.deliveryCity}, {order.deliveryState} - {order.deliveryPincode}
+                    <div className="bg-orange-50 p-3.5 rounded-2xl text-slate-600 border border-orange-100 text-xs">
+                      <strong className="text-orange-500">📍 Delivery:</strong> {order.deliveryStreet}, {order.deliveryCity}, {order.deliveryState} — {order.deliveryPincode}
                     </div>
                   )}
-
                   {order.fulfillmentType === 'STORE_PICKUP' && order.pickupSlot && (
-                    <div className="bg-slate-900/60 p-3.5 rounded-2xl text-slate-300 border border-slate-700/60">
-                      <strong className="text-lime-400">Pickup Slot:</strong> {new Date(order.pickupSlot).toLocaleString()}
+                    <div className="bg-sky-50 p-3.5 rounded-2xl text-slate-600 border border-sky-100 text-xs">
+                      <strong className="text-sky-500">🏪 Pickup Slot:</strong> {new Date(order.pickupSlot).toLocaleString()}
                     </div>
                   )}
 
-                  <div className="space-y-2">
-                    <div className="font-bold text-slate-300">Order Items:</div>
-                    <div className="divide-y divide-slate-700/60">
-                      {order.items.map((item) => (
-                        <div key={item.id} className="py-2.5 flex justify-between items-center">
-                          <div>
-                            <span className="font-bold text-white">{item.productName}</span>
-                            <span className="text-slate-400 ml-2">({item.quantity} {item.productUnit})</span>
-                            {item.returned && (
-                              <span className="ml-2 bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded font-bold text-[10px]">
-                                Returned
-                              </span>
-                            )}
-                          </div>
-                          <div className="font-black text-slate-200">₹{item.totalPrice}</div>
+                  <div className="divide-y divide-slate-100">
+                    {order.items.map((item) => (
+                      <div key={item.id} className="py-2.5 flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-700">{item.productName}</span>
+                          <span className="text-slate-400">({item.quantity} {item.productUnit})</span>
+                          {item.returned && (
+                            <span className="bg-amber-100 text-amber-600 border border-amber-200 px-2 py-0.5 rounded font-bold text-[10px]">Returned</span>
+                          )}
                         </div>
-                      ))}
-                    </div>
+                        <div className="font-black text-slate-700">₹{item.totalPrice}</div>
+                      </div>
+                    ))}
                   </div>
 
-                  <div className="pt-3 border-t border-slate-700/60 flex justify-between items-center">
+                  <div className="pt-3 border-t border-slate-100 flex justify-between items-center flex-wrap gap-2">
                     <div>
                       {isDelivered && (
-                        <span className="text-emerald-400 font-bold text-[11px] flex items-center gap-1">
+                        <span className="text-green-500 font-bold text-[11px] flex items-center gap-1">
                           <CheckCircle2 className="w-4 h-4" />
                           Delivered on {new Date(order.deliveredAt).toLocaleDateString()}
                         </span>
                       )}
                     </div>
-
                     <div className="flex gap-2">
                       {canCancel && (
-                        <button
-                          onClick={() => handleCancelOrder(order.id)}
-                          className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold rounded-xl border border-red-500/30 transition"
+                        <button onClick={() => handleCancelOrder(order.id)}
+                          className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-500 font-bold rounded-xl border border-red-200 transition btn-ripple"
                         >
-                          Cancel Order
+                          Cancel
                         </button>
                       )}
-
                       {isDelivered && (
-                        <button
-                          onClick={() => setSelectedOrderForReturn(order)}
-                          className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl shadow-lg transition flex items-center gap-1.5"
+                        <button onClick={() => setSelectedOrderForReturn(order)}
+                          className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-600 hover:to-orange-500 text-white font-black rounded-xl shadow-md glow-orange transition btn-ripple flex items-center gap-1.5"
                         >
-                          <RotateCcw className="w-3.5 h-3.5" />
-                          Request Return / Exchange
+                          <RotateCcw className="w-3.5 h-3.5" /> Return / Exchange
                         </button>
                       )}
                     </div>
@@ -215,31 +214,30 @@ export const MyOrdersView = () => {
           </div>
         )
       ) : (
-        /* Returns List */
-        <div className="space-y-3">
-          {returns.map((req) => (
-            <div key={req.id} className="bg-slate-800/80 rounded-3xl border border-slate-700/80 p-5 space-y-3 shadow-xl">
-              <div className="flex justify-between items-center">
+        <div className="space-y-3 stagger-children">
+          {returns.length === 0 ? (
+            <div className="bg-white rounded-3xl p-16 text-center border border-slate-100 space-y-3">
+              <div className="text-4xl">🔄</div>
+              <p className="font-black text-slate-600">No return requests yet</p>
+            </div>
+          ) : returns.map((req) => (
+            <div key={req.id} className="bg-white rounded-3xl border border-slate-200 p-5 space-y-3 shadow-sm hover:shadow-md transition">
+              <div className="flex justify-between items-center flex-wrap gap-2">
                 <div className="flex items-center gap-2">
-                  <span className="font-black text-white">Request #{req.id} (Order #{req.orderId})</span>
-                  <span className="bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2.5 py-0.5 rounded-full font-bold">
-                    {req.status}
-                  </span>
-                  <span className="bg-slate-900 text-slate-300 px-2.5 py-0.5 rounded-full font-bold uppercase">
-                    {req.type}
-                  </span>
+                  <span className="font-black text-slate-700">Request #{req.id}</span>
+                  <span className="text-slate-400 text-[10px]">Order #{req.orderId}</span>
+                  <span className="bg-amber-100 text-amber-600 border border-amber-200 px-2.5 py-0.5 rounded-full font-bold">{req.status}</span>
+                  <span className="bg-sky-50 text-sky-500 border border-sky-200 px-2.5 py-0.5 rounded-full font-bold uppercase">{req.type}</span>
                 </div>
                 <span className="text-slate-400">{new Date(req.requestedAt).toLocaleDateString()}</span>
               </div>
-
-              <div className="bg-slate-900/60 p-3 rounded-2xl border border-slate-700/60">
-                <div><strong className="text-emerald-400">Item:</strong> {req.productName} ({req.quantity})</div>
-                <div><strong className="text-slate-300">Reason:</strong> {req.reason}</div>
-                {req.targetProductName && <div><strong className="text-lime-400">Exchange Target:</strong> {req.targetProductName}</div>}
+              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 space-y-1">
+                <div><strong className="text-orange-500">Item:</strong> {req.productName} ({req.quantity})</div>
+                <div><strong className="text-slate-600">Reason:</strong> {req.reason}</div>
+                {req.targetProductName && <div><strong className="text-sky-500">Exchange Target:</strong> {req.targetProductName}</div>}
               </div>
-
               {req.staffNote && (
-                <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-2xl text-amber-300">
+                <div className="bg-amber-50 border border-amber-200 p-3 rounded-2xl text-amber-700 text-xs">
                   <strong>Staff Note:</strong> {req.staffNote}
                 </div>
               )}
@@ -253,7 +251,7 @@ export const MyOrdersView = () => {
         onClose={() => setSelectedOrderForReturn(null)}
         order={selectedOrderForReturn}
         products={products}
-        onRequestSubmitted={() => fetchOrdersAndReturns()}
+        onRequestSubmitted={fetchOrdersAndReturns}
       />
     </div>
   );
