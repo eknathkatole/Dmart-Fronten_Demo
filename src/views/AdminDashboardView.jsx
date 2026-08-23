@@ -52,15 +52,20 @@ export const AdminDashboardView = () => {
     setError('');
     try {
       const [catRes, prodRes, appRes] = await Promise.all([
-        apiClient.get('/api/v1/admin/categories'),
-        apiClient.get('/api/v1/admin/products?size=100'),
-        apiClient.get('/api/v1/admin/staff-requests'),
+        apiClient.get('/api/v1/admin/categories').catch(() => ({ data: [] })),
+        apiClient.get('/api/v1/admin/products?size=100').catch(() => ({ data: { content: [] } })),
+        apiClient.get('/api/v1/admin/staff-requests').catch(() => ({ data: [] })),
       ]);
-      setCategories(catRes.data || []);
-      setProducts(prodRes.data?.content || []);
-      setStaffApplications(appRes.data || []);
-      if (catRes.data?.length > 0 && !prodCategoryId) {
-        setProdCategoryId(catRes.data[0].id);
+      const catList = catRes.data || [];
+      const prodList = prodRes.data?.content || prodRes.data || [];
+      const appList = appRes.data || [];
+
+      setCategories(catList);
+      setProducts(prodList);
+      setStaffApplications(appList);
+
+      if (catList.length > 0 && !prodCategoryId) {
+        setProdCategoryId(catList[0].id);
       }
     } catch (err) {
       setError(err.message || 'Failed to fetch admin data.');
