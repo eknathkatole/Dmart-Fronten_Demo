@@ -44,7 +44,7 @@ const EmptyState = ({ searchTerm, onReset }) => (
 );
 
 /* ─── Main View ───────────────────────────────────────────── */
-export const ShopCatalogView = ({ searchTerm: rawSearch }) => {
+export const ShopCatalogView = ({ searchTerm: rawSearch, onOpenCart }) => {
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
@@ -263,7 +263,7 @@ export const ShopCatalogView = ({ searchTerm: rawSearch }) => {
                   className="animate-page"
                   style={{ animationDelay: `${Math.min(i * 30, 300)}ms` }}
                 >
-                  <ProductCard product={product} />
+                  <ProductCard product={product} onOpenCart={onOpenCart} />
                 </div>
               ))
           }
