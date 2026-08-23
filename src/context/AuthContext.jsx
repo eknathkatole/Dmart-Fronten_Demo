@@ -46,10 +46,33 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (name, email, password, phone) => {
+  const sendRegistrationOtp = async (name, email, password, confirmPassword, phone) => {
     setLoading(true);
     try {
-      const res = await apiClient.post('/api/v1/auth/register', { name, email, password, phone });
+      const res = await apiClient.post('/api/v1/auth/register/send-otp', {
+        name,
+        email,
+        password,
+        confirmPassword,
+        phone,
+      });
+      return res.data;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyRegistrationOtp = async (name, email, password, confirmPassword, phone, otp) => {
+    setLoading(true);
+    try {
+      const res = await apiClient.post('/api/v1/auth/register/verify-otp', {
+        name,
+        email,
+        password,
+        confirmPassword,
+        phone,
+        otp,
+      });
       const authData = res.data;
       setToken(authData.accessToken);
       const userData = {
@@ -65,13 +88,80 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const applyForStaff = async (name, email, phone, storeName, reason) => {
+    setLoading(true);
+    try {
+      const res = await apiClient.post('/api/v1/auth/staff-request', {
+        name,
+        email,
+        phone,
+        storeName,
+        reason,
+      });
+      return res.data;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const register = async (name, email, password, confirmPassword, phone) => {
+    setLoading(true);
+    try {
+      const res = await apiClient.post('/api/v1/auth/register', { 
+        name, 
+        email, 
+        password, 
+        confirmPassword, 
+        phone 
+      });
+      const authData = res.data;
+      setToken(authData.accessToken);
+      const userData = {
+        id: authData.userId,
+        name: authData.name,
+        email: authData.email,
+        role: authData.role,
+      };
+      setUser(userData);
+      return userData;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const forgotPassword = async (email) => {
+    setLoading(true);
+    try {
+      const res = await apiClient.post('/api/v1/auth/forgot-password', { email });
+      return res.data;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetPassword = async (email, otp, newPassword, confirmPassword) => {
+    setLoading(true);
+    try {
+      const res = await apiClient.post('/api/v1/auth/reset-password', {
+        email,
+        otp,
+        newPassword,
+        confirmPassword,
+      });
+      return res.data;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const createUserWithRole = async (name, email, password, phone, role) => {
     setLoading(true);
     try {
-      const res = await apiClient.post(`/api/v1/auth/admin/users?role=${role}`, {
+      const res = await apiClient.post(`/api/v1/admin/users?role=${role}`, {
         name,
         email,
         password,
+        confirmPassword: password,
         phone,
       });
       return res.data;
@@ -95,6 +185,11 @@ export const AuthProvider = ({ children }) => {
         loading,
         login,
         register,
+        sendRegistrationOtp,
+        verifyRegistrationOtp,
+        applyForStaff,
+        forgotPassword,
+        resetPassword,
         createUserWithRole,
         logout,
         isAuthenticated: !!token,
