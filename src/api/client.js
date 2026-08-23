@@ -1,8 +1,9 @@
 import axios from 'axios';
 
-// Use relative URL / when running locally with Vite proxy or hosted on same domain,
-// or fallback to explicitly set VITE_API_BASE_URL
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+// Live Online Render Backend API Base URL
+const LIVE_RENDER_API = 'https://mini-dmartby-eknath-katole-ha7f.onrender.com';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || LIVE_RENDER_API;
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
